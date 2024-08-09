@@ -6,12 +6,12 @@
  * Company: Aminic Aps
  *
  * This implementation provides algorithms for detecting and analyzing peaks in noisy signals.
- * The approach is based on adaptive peak detection, which dynamically adjusts detection thresholds 
+ * The approach is based on adaptive peak detection, which dynamically adjusts detection thresholds
  * and criteria based on local signal properties, such as mean and standard deviation.
- * 
- * The algorithms in this implementation utilize local mean and local standard deviation to find peaks that adhere 
- * to the overall trend of the dataset in a given window. The implementation considers both the full width at half 
- * maximum (FWHM) and the width at 10% of the peak height, ensuring robust peak detection and analysis. 
+ *
+ * The algorithms in this implementation utilize local mean and local standard deviation to find peaks that adhere
+ * to the overall trend of the dataset in a given window. The implementation considers both the full width at half
+ * maximum (FWHM) and the width at 10% of the peak height, ensuring robust peak detection and analysis.
  *
  */
 
@@ -21,35 +21,39 @@
 #include <stdint.h>
 #include "adaptive_peak_finding.h"
 
-/*!
- * @brief Determines if a peak is still climbing at the end of a dataset.
- *
- * This function assesses whether the identified peak in a dataset is still rising 
- * as it reaches the end of the dataset. This is important in peak finding algorithms,
- * particularly when analyzing segments of data where the peak might extend beyond 
- * the current dataset's boundary.
- *
- * The function iterates from the peak index to the end of the dataset, calculating 
- * the derivative (rate of change) at each point. It checks if this derivative is 
- * less than or equal to a specified noise tolerance. If the condition fails more than once,
- * it indicates that the peak is no longer climbing.
- *
- * This check helps to determine if the current dataset's peak is part of a larger peak 
- * that might be fully realized in subsequent datasets. If the peak is still climbing 
- * at the end of the current dataset, there may be a need to analyze the next dataset 
- * to find the true peak.
- *
- * @param b The array of data points (MqsRawDataPoint_t) containing the peak.
- * @param sizeB The size of the array.
- * @param peakIndex The index of the peak within the array.
- * @param noiseTolerance The tolerance level for the derivative to be considered noise.
- * @return True if the peak is still climbing; false otherwise.
- */
+
+#define DEBUG_PRINT
+
+
+ /*!
+  * @brief Determines if a peak is still climbing at the end of a dataset.
+  *
+  * This function assesses whether the identified peak in a dataset is still rising
+  * as it reaches the end of the dataset. This is important in peak finding algorithms,
+  * particularly when analyzing segments of data where the peak might extend beyond
+  * the current dataset's boundary.
+  *
+  * The function iterates from the peak index to the end of the dataset, calculating
+  * the derivative (rate of change) at each point. It checks if this derivative is
+  * less than or equal to a specified noise tolerance. If the condition fails more than once,
+  * it indicates that the peak is no longer climbing.
+  *
+  * This check helps to determine if the current dataset's peak is part of a larger peak
+  * that might be fully realized in subsequent datasets. If the peak is still climbing
+  * at the end of the current dataset, there may be a need to analyze the next dataset
+  * to find the true peak.
+  *
+  * @param b The array of data points (MqsRawDataPoint_t) containing the peak.
+  * @param sizeB The size of the array.
+  * @param peakIndex The index of the peak within the array.
+  * @param noiseTolerance The tolerance level for the derivative to be considered noise.
+  * @return True if the peak is still climbing; false otherwise.
+  */
 static bool isPeakClimbing(MqsRawDataPoint_t b[], int sizeB, int peakIndex, float noiseTolerance)
 {
     if (peakIndex <= 0 || peakIndex >= sizeB - 1)
     {
-        return false; 
+        return false;
     }
 
     int failCount = 0; // Counter for the number of times condition is not met
@@ -61,7 +65,7 @@ static bool isPeakClimbing(MqsRawDataPoint_t b[], int sizeB, int peakIndex, floa
         // Check if the derivative after is less than or equal to the noise tolerance
         if (derivativeAfter <= noiseTolerance)
         {
-            failCount++; 
+            failCount++;
             if (failCount >= 2) // Check if it's the second time
             {
                 return false; // Peak is not climbing if condition failed twice
@@ -70,7 +74,7 @@ static bool isPeakClimbing(MqsRawDataPoint_t b[], int sizeB, int peakIndex, floa
     }
 
     // Return true only if failCount is less than 2
-    return failCount < 2; 
+    return failCount < 2;
 }
 
 /*!
@@ -83,7 +87,7 @@ static bool isPeakClimbing(MqsRawDataPoint_t b[], int sizeB, int peakIndex, floa
  * @param max_index A pointer to store the index of the maximum value.
  * @return The index of the maximum value found in the specified column.
  */
-static inline int maxrow(const MqsRawDataPoint_t a[], int size, int col, float *max_val, int *max_index)
+static inline int maxrow(const MqsRawDataPoint_t a[], int size, int col, float* max_val, int* max_index)
 {
     for (int i = 0; i < size; i++)
     {
@@ -100,14 +104,14 @@ static inline int maxrow(const MqsRawDataPoint_t a[], int size, int col, float *
 /*!
  * @brief Recursively finds a peak in a dataset using a divide-and-conquer approach.
  *
- * This function implements a recursive peak finding algorithm. It divides the dataset 
- * into two halves at each recursive step and determines the direction (left or right) 
- * to continue the search based on the comparison of adjacent values. This divide-and-conquer 
- * approach significantly reduces the time complexity compared to a linear search, improving 
+ * This function implements a recursive peak finding algorithm. It divides the dataset
+ * into two halves at each recursive step and determines the direction (left or right)
+ * to continue the search based on the comparison of adjacent values. This divide-and-conquer
+ * approach significantly reduces the time complexity compared to a linear search, improving
  * performance, especially in large datasets.
  *
- * The function also supports ignoring specific indices in the dataset, which can be useful 
- * in cases where certain data points have low FWHM. 
+ * The function also supports ignoring specific indices in the dataset, which can be useful
+ * in cases where certain data points have low FWHM.
  *
  * @param a The array of data points (MqsRawDataPoint_t) to search through for a peak.
  * @param size The size of the array.
@@ -118,7 +122,7 @@ static inline int maxrow(const MqsRawDataPoint_t a[], int size, int col, float *
  * @param numIgnoreIndices The number of indices to ignore.
  * @return The value of the peak found, or -1 if no peak is found.
  */
-static double findPeakRec(const MqsRawDataPoint_t a[], int size, int l, int r, uint16_t *peakIndex)
+static double findPeakRec(const MqsRawDataPoint_t a[], int size, int l, int r, uint16_t* peakIndex)
 {
     if (l > r)
         return -1;
@@ -161,18 +165,18 @@ static double findPeakRec(const MqsRawDataPoint_t a[], int size, int l, int r, u
  * @param local_std Pointer to store the computed local standard deviation.
  */
 static inline void calculate_local_stats(const MqsRawDataPoint_t* signal, int length, int window_size, int index, double* local_mean, double* local_std) {
-    int start = fmax(0, index - window_size / 2);  
+    int start = fmax(0, index - window_size / 2);
     int end = fmin(length - 1, index + window_size / 2);
     double sum = 0, sum_sq = 0;
     int count = 0;
-    
+
     for (int i = start; i <= end; ++i) {
         double value = signal[i].phaseAngle;
         sum += value;
         sum_sq += value * value;
         count++;
     }
-    
+
     *local_mean = sum / count;
     *local_std = sqrt(sum_sq / count - (*local_mean) * (*local_mean));
 } //boundary problem 
@@ -191,17 +195,20 @@ static inline void calculate_local_stats(const MqsRawDataPoint_t* signal, int le
  * @param peaks Array to store the detected peak indices.
  * @param num_peaks Pointer to store the number of detected peaks.
  */
-static void adaptive_gradient_find_peaks(const MqsRawDataPoint_t * restrict signal, int length, int start, int end, int window_size, int * restrict peaks, int * restrict num_peaks) {
+
+static void adaptive_gradient_find_peaks(const MqsRawDataPoint_t* signal, int length, int start, int end, int window_size, int*  peaks, int* num_peaks) {
     // Define array sizes based on PEAK_DETECTION_WINDOW_SIZE
-    double dY[PEAK_DETECTION_WINDOW_SIZE - 2] = {0};
-    int S[PEAK_DETECTION_WINDOW_SIZE - 2] = {0};
-    int ddS[PEAK_DETECTION_WINDOW_SIZE - 4] = {0};
+    double dY[PEAK_DETECTION_WINDOW_SIZE - 2] = { 0 };
+    int S[PEAK_DETECTION_WINDOW_SIZE - 2] = { 0 };
+    int ddS[PEAK_DETECTION_WINDOW_SIZE - 4] = { 0 };
 
     int range_length = end - start + 1;
     double local_mean, local_std;
 
     if (range_length > PEAK_DETECTION_WINDOW_SIZE) {
+#ifdef DEBUG_PRINT
         printf("Range length exceeds maximum allowed size.\n");
+#endif
         return;
     }
 
@@ -222,9 +229,9 @@ static void adaptive_gradient_find_peaks(const MqsRawDataPoint_t * restrict sign
         if (ddS[i - 1] == -2) {
             int peak_index = start + i;  // Adjusting index to account for convolution offset
             calculate_local_stats(signal, length, window_size, peak_index, &local_mean, &local_std);
-            double adaptive_threshold = local_mean + 0.9 * local_std;  // Adjusted multiplier
+            double adaptive_threshold = local_mean + 0.7 * local_std;  // Adjusted multiplier
             if (signal[peak_index].phaseAngle > adaptive_threshold) {
-                peaks[*num_peaks] = peak_index;  // Adjusted peak index stored here
+                peaks[*num_peaks] = peak_index + 1;  // Adjusted peak index stored here
                 (*num_peaks)++;
             }
         }
@@ -238,12 +245,12 @@ static void adaptive_gradient_find_peaks(const MqsRawDataPoint_t * restrict sign
  * This function computes the width of each detected peak in the signal based on both the full width
  * at half maximum (FWHM) criterion and the width at 10% of the peak height.
  *
- * Additionally, the function calculates the width at 10% of the peak height to account for noise and 
- * to get a better understanding of the broader peak characteristics. This is especially useful in 
- * noisy signals where the 10% width helps in assessing the influence of noise and the general shape of 
+ * Additionally, the function calculates the width at 10% of the peak height to account for noise and
+ * to get a better understanding of the broader peak characteristics. This is especially useful in
+ * noisy signals where the 10% width helps in assessing the influence of noise and the general shape of
  * the dataset on the peak width.
  *
- * The function determines these widths by finding the points where the signal crosses the 50% and 10% 
+ * The function determines these widths by finding the points where the signal crosses the 50% and 10%
  * thresholds on either side of the peak.
  *
  * @param signal The input signal array.
@@ -252,7 +259,7 @@ static void adaptive_gradient_find_peaks(const MqsRawDataPoint_t * restrict sign
  * @param widths Array to store the computed widths of the peaks.
  * @param length The length of the input signal array.
  */
-static void calculate_peak_widths(const MqsRawDataPoint_t * restrict signal, const int * restrict peaks, int num_peaks, double * restrict widths, int length) {
+static void calculate_peak_widths(const MqsRawDataPoint_t* signal, const int* peaks, int num_peaks, double* widths, int length) {
     for (int i = 0; i < num_peaks; i++) {
         int peak = peaks[i];
         double peak_height = signal[peak].phaseAngle;
@@ -289,41 +296,78 @@ static void calculate_peak_widths(const MqsRawDataPoint_t * restrict signal, con
  * @param peakIndex The index of the peak for which to calculate prominence.
  * @return The computed prominence of the peak.
  */
-static double find_prominence(const MqsRawDataPoint_t * restrict signal, int length, int peakIndex) { //no boundary problem 
-    int leftBoundary = 0;
-    int rightBoundary = length - 1;
+/*!
+ * @brief Calculate the prominence of a given peak.
+ *
+ * This function computes the prominence of a peak in the signal, which is the height of the peak
+ * relative to the lowest contour line surrounding it.
+ *
+ * The function first determines the left and right boundaries where the signal rises to higher values
+ * or where the dataset boundary is reached. Then, it finds the minimum value within these boundaries
+ * and calculates the prominence as the difference between the peak value and this minimum value.
+ *
+ * The function includes additional checks to ensure accurate boundary selection and noise handling,
+ * making it robust for a variety of signal conditions.
+ *
+ * @param signal The input signal array.
+ * @param length The length of the input signal array.
+ * @param peakIndex The index of the peak for which to calculate prominence.
+ * @return The computed prominence of the peak.
+ */
+static double find_prominence(const MqsRawDataPoint_t* signal, int length, int peakIndex) {
+    // Step 1: Identify the boundaries within which to calculate prominence
+    int leftBoundary = peakIndex, rightBoundary = peakIndex;
     double peak_val = signal[peakIndex].phaseAngle;
 
-    // Find the nearest higher peak or end on the left
+    // Debug: Print the initial peak information
+    //printf("Processing peak at index %d with phase angle %f\n", peakIndex, peak_val);
+
+    // Search left for a boundary or higher peak
     for (int i = peakIndex - 1; i >= 0; i--) {
         if (signal[i].phaseAngle > peak_val) {
             leftBoundary = i;
             break;
+        } else if (signal[i].phaseAngle < signal[leftBoundary].phaseAngle) {
+            leftBoundary = i;  // Update to the lowest point found so far
         }
     }
 
-    // Find the nearest higher peak or end on the right
+    // Search right for a boundary or higher peak
     for (int i = peakIndex + 1; i < length; i++) {
         if (signal[i].phaseAngle > peak_val) {
             rightBoundary = i;
             break;
+        } else if (signal[i].phaseAngle < signal[rightBoundary].phaseAngle) {
+            rightBoundary = i;  // Update to the lowest point found so far
         }
     }
 
-    // Find the minimum value within the boundaries
-    double minValue = signal[rightBoundary].phaseAngle;
+    // Step 2: Find the minimum value within the identified boundaries
+    double minValue = signal[leftBoundary].phaseAngle;
     for (int i = leftBoundary; i <= rightBoundary; i++) {
         if (signal[i].phaseAngle < minValue) {
             minValue = signal[i].phaseAngle;
         }
     }
 
+    // Debug: Print the minimum value found within boundaries
+    //printf("Minimum phase angle within boundaries: %f\n", minValue);
+
+    // Step 3: Calculate the prominence as the difference between peak and minimum values
+    double prominence = peak_val - minValue;
+
+    // Step 4: Apply a noise tolerance factor (if desired) to filter out insignificant prominences
     double local_mean, local_std;
     calculate_local_stats(signal, length, WINDOW_SIZE, peakIndex, &local_mean, &local_std);
+
+    //useful only when the distribution is gaussian.
     double shape_factor = exp(-(signal[peakIndex].phaseAngle - local_mean) * (signal[peakIndex].phaseAngle - local_mean) / (2 * local_std * local_std));
     double adjusted_prominence = (peak_val - minValue) * shape_factor;
 
-    return adjusted_prominence;
+    // Debug: Print the calculated prominence
+    printf("Calculated prominence for peak at index %d: %f\n", peakIndex, adjusted_prominence);
+
+    return prominence;
 }
 
 
@@ -338,9 +382,16 @@ static double find_prominence(const MqsRawDataPoint_t * restrict signal, int len
  * @param prominences Array to store the computed prominences of the peaks.
  * @param length The length of the input signal array.
  */
-static void calculate_peak_prominences(const MqsRawDataPoint_t * restrict signal, const int * restrict peaks, int num_peaks, double * restrict prominences, int length) {
+static void calculate_peak_prominences(const MqsRawDataPoint_t* signal, const int* peaks, int num_peaks, double* prominences, int length) {
     for (int i = 0; i < num_peaks; i++) {
+        // Print the current peak index being processed
+        printf("Processing peak %d at index %d\n", i + 1, peaks[i]);
+
+        // Calculate the prominence for the current peak
         prominences[i] = find_prominence(signal, length, peaks[i]);
+
+        // Print the calculated prominence for the current peak
+        printf("Calculated prominence for peak at index %d: %f\n", peaks[i], prominences[i]);
     }
 }
 
@@ -354,10 +405,12 @@ static void calculate_peak_prominences(const MqsRawDataPoint_t * restrict signal
  * @param length The length of the input signal array.
  * @return The index of the primary peak.
  */
-uint16_t find_primary_peak(const MqsRawDataPoint_t* signal, int length) {
+static uint16_t find_primary_peak(const MqsRawDataPoint_t* signal, int length) {
     uint16_t primary_peak = 0;
     float peak_value = findPeakRec(signal, length, 0, length - 1, &primary_peak);
+#ifdef DEBUG_PRINT
     printf("Primary peak at index %d with value %f\n", primary_peak, peak_value);
+#endif
     return primary_peak;
 }
 
@@ -378,10 +431,12 @@ static int detect_peaks_in_range(const MqsRawDataPoint_t* signal, int length, in
     int num_peaks = 0;
     adaptive_gradient_find_peaks(signal, length, range_start, range_end, window_size, peaks, &num_peaks);
 
+#ifdef DEBUG_PRINT
     printf("Detected Peaks:\n");
     for (int i = 0; i < num_peaks; i++) {
         printf("Peak at index %d, value = %f\n", peaks[i], signal[peaks[i]].phaseAngle);
     }
+#endif
     return num_peaks;
 }
 
@@ -406,16 +461,18 @@ static bool find_widest_peak(const MqsRawDataPoint_t* signal, int length, int* p
 
     double* prominences = (double*)malloc(num_peaks * sizeof(double));
     if (!prominences) {
-        fprintf(stderr, "Memory allocation failed\n");
+        //fprintf(stderr, "Memory allocation failed\n");
         return false;
     }
 
     calculate_peak_prominences(signal, peaks, num_peaks, prominences, length);
 
+#ifdef DEBUG_PRINT
     printf("Peak Widths and Prominences:\n");
     for (int i = 0; i < num_peaks; i++) {
         printf("Peak at index %d has width %f and prominence %f\n", peaks[i], widths[i], prominences[i]);
     }
+#endif
 
     double max_width = 0.0;
     int max_width_index = -1;
@@ -428,7 +485,9 @@ static bool find_widest_peak(const MqsRawDataPoint_t* signal, int length, int* p
 
     if (max_width_index != -1) {
         if (prominences[max_width_index] < PROMINENCE_THRESHOLD) {
+#ifdef DEBUG_PRINT
             printf("Low Prominence\n");
+#endif
             free(prominences);
             return false;
         }
@@ -461,12 +520,12 @@ static bool detect_peak_with_width(const MqsRawDataPoint_t* signal, int length, 
     if (range_start < 0) range_start = 0;
     if (range_end >= length) range_end = length - 1;
 
-    int peaks[peak_range];
+    int peaks[PEAK_DETECTION_WINDOW_SIZE];
     for (int i = 0; i < peak_range; i++) peaks[i] = -1;  // Initialize peaks array
 
     int num_peaks = detect_peaks_in_range(signal, length, range_start, range_end, WINDOW_SIZE, peaks);
 
-    double widths[peak_range];
+    double widths[PEAK_DETECTION_WINDOW_SIZE];
     return find_widest_peak(signal, length, peaks, num_peaks, widths, widest_peak_index);
 }
 
@@ -481,26 +540,35 @@ static bool detect_peak_with_width(const MqsRawDataPoint_t* signal, int length, 
  * @param peakIndex Pointer to store the index of the peak with the widest width.
  * @return True if a valid peak with sufficient width and prominence is found; false otherwise.
  */
-bool processPeak(MqsRawDataPoint_t a[], int size, uint16_t *peakIndex, bool* isEdgeCase) {
+bool processPeak(MqsRawDataPoint_t a[], int size, uint16_t* peakIndex, bool* isEdgeCase) {
     int peak_range = PEAK_DETECTION_WINDOW_SIZE;  // Example range
 
+    /*
+    for (int i = 0; i < size; i++) {
+        printf(" %f,", a[i].phaseAngle);
+    }
+    */
     bool result = detect_peak_with_width(a, size, peak_range, peakIndex);
-    
+
     // Check if peak is near the end and potentially still climaxing
-     if (*peakIndex >= size - PEAK_THRESHOLD)
+    if (*peakIndex >= size - PEAK_THRESHOLD)
     {
         *isEdgeCase = isPeakClimbing(a, size, *peakIndex, NOISE_TOLERANCE);
     }
-    
+
     if (result) {
         double peak_magnitude = a[*peakIndex].phaseAngle;
-        
+
+#ifdef DEBUG_PRINT
         printf("Peak found at index: %d\n", *peakIndex);
-        printf("Peak magnitude: %f\n", peak_magnitude);
-    } else {
+        printf("Peak magnitude: %f\n", peak_magnitude); 
+#endif
+    }
+    else {
+#ifdef DEBUG_PRINT
         printf("No peak with width detected.\n");
+#endif
     }
 
     return result;
 }
-
