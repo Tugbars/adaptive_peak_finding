@@ -87,18 +87,17 @@ static bool isPeakClimbing(MqsRawDataPoint_t b[], int sizeB, int peakIndex, floa
  * @param max_index A pointer to store the index of the maximum value.
  * @return The index of the maximum value found in the specified column.
  */
-static inline int maxrow(const MqsRawDataPoint_t a[], int size, int col, float* max_val, int* max_index)
-{
-    for (int i = 0; i < size; i++)
-    {
-        if (*max_val < a[i].phaseAngle)
-        {
+static inline int maxrow(const MqsRawDataPoint_t a[], int l, int r, float* max_val, int* max_index) {
+    *max_val = -INFINITY;
+    for (int i = l; i <= r; i++) {
+        if (*max_val < a[i].phaseAngle) {
             *max_val = a[i].phaseAngle;
             *max_index = i;
         }
     }
     return *max_index;
 }
+
 
 
 /*!
@@ -122,31 +121,31 @@ static inline int maxrow(const MqsRawDataPoint_t a[], int size, int col, float* 
  * @param numIgnoreIndices The number of indices to ignore.
  * @return The value of the peak found, or -1 if no peak is found.
  */
-static double findPeakRec(const MqsRawDataPoint_t a[], int size, int l, int r, uint16_t* peakIndex)
-{
-    if (l > r)
+static double findPeakRec(const MqsRawDataPoint_t a[], int l, int r, uint16_t* peakIndex) {
+    if (l > r) {
         return -1;
-
-    int mid = (l + r) / 2;
-    float max_val = 0.0f;
-    int max_index = 0;
-
-    int max_row_index = maxrow(a, size, mid, &max_val, &max_index);
-
-    if (mid == 0 || mid == size - 1)
-    {
-        *peakIndex = max_row_index;
-        return max_val;
     }
 
-    if (max_val < a[mid - 1].phaseAngle)
-        return findPeakRec(a, size, l, mid - 1, peakIndex);
-    else if (max_val < a[mid + 1].phaseAngle)
-        return findPeakRec(a, size, mid + 1, r, peakIndex);
-    else
-    {
-        *peakIndex = max_row_index;
-        return max_val;
+    int mid = (l + r) / 2;
+    float mid_value = a[mid].phaseAngle;
+
+    // Check boundary condition: if mid is at an edge, return it
+    if (mid == l || mid == r) {
+        *peakIndex = mid;
+        return mid_value;
+    }
+
+    // If the element on the left is greater, search left half
+    if (a[mid - 1].phaseAngle > mid_value) {
+        return findPeakRec(a, l, mid - 1, peakIndex);
+    }
+    // If the element on the right is greater, search right half
+    else if (a[mid + 1].phaseAngle > mid_value) {
+        return findPeakRec(a, mid + 1, r, peakIndex);
+    }
+    else {
+        *peakIndex = mid;
+        return mid_value;
     }
 }
 
