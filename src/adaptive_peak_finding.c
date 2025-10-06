@@ -2,7 +2,7 @@
  * Adaptive Peak Finding and Analysis Implementation.
  *
  * Author: Tugbars Heptaskin
- * Date: 06/18/2024
+ * Date: 10/06/2025
  * Company: Aminic Aps
  *
  * This implementation provides algorithms for detecting and analyzing peaks in noisy signals.
