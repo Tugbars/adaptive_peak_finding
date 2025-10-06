@@ -18,21 +18,46 @@ It also computes **width metrics** (Full Width at Half Maximum – FWHM, and wid
 
 ## Features
 
-* **Adaptive thresholding:** Uses local mean and standard deviation to dynamically adjust detection sensitivity.
-* **Topological prominence:** Compatible with MATLAB’s `findpeaks` prominence calculation.
-* **Hysteresis-based width estimation:** Improves robustness in noisy data.
-* **Flat-top handling:** Optionally detects plateaus and returns their center.
-* **Safe numerical handling:**
+1. **Second-order-derivative core**
+   Peaks are located at zero-crossings of the **second difference** (ΔΔ signal).
+   This converts the search into a *sign-change* problem, making the detector largely insensitive to slow baseline drift and linear trends while keeping computational cost **O(N)**.
 
-  * Welford’s algorithm for local statistics (avoids floating-point instability).
-  * Safe midpoint computation in recursion to prevent integer overflow.
-* **Error handling:** Uses a return code enum (`PeakResult`) for precise error reporting.
-* **Memory safety:**
+2. **Adaptive thresholding**
+   Every candidate zero-crossing is validated against a **local** amplitude gate:
+   `threshold = μ_local + k · σ_local`
+   where μ and σ are computed with **Welford’s** stable on-line algorithm inside a user-defined window. Sensitivity therefore **tracks** non-stationary noise and signal power in real time.
 
-  * Dynamic allocation with failure handling.
-  * Guard checks for array boundaries and invalid configurations.
+3. **Topological (MATLAB-compatible) prominence**
+   Prominence is calculated with the **topographic rule** used by MATLAB’s `findpeaks`: descend left and right until a higher summit or the data edge is met; the prominence is the peak height minus the **higher** of the two minima encountered. No Gaussian priors, no fitting – just the internationally accepted definition.
 
----
+4. **Hysteresis-based width estimation**
+   FWHM and 10%-height widths are measured with **hysteresis**: after the signal drops below the target level it must rise back by a configurable percentage (default **20%**) before the search stops. This suppresses “hair-line” widths caused by single outlier samples and gives repeatable results on noisy data.
+
+5. **Flat-top plateau handling**
+   When enabled, the divide-and-conquer peak search continues until the **entire plateau** is traversed; the **centre index** is returned. Useful for rectangular pulses, clipped peaks, or over-sampled data.
+
+6. **Safe numerical handling**
+
+   * Welford’s on-line algorithm for mean/variance – no catastrophic cancellation even when the window is large and the signal almost constant.
+   * Mid-point calculation uses `l + (r - l) / 2` to avoid 32-bit overflow.
+   * All floating work is done in `double`; user data may be `float`.
+
+7. **Robust error handling**
+   Functions return the `PeakResult` enum (`PEAK_OK`, `PEAK_NO_MEMORY`, `PEAK_INVALID_CONFIG`, …). Callers can switch on the exact cause instead of guessing from a magic `-1`.
+
+8. **Memory safety & boundary guards**
+
+   * Dynamic scratch buffers are **always** bounded by `peak_detection_window_size`; `malloc` failures are caught and reported.
+   * Window indices are clipped to `[0 … length-1]`; the code never accesses out-of-range samples even when the peak sits at the very edge of the buffer.
+
+9. **Zero-dependency, single-file ANSI-C**
+   No third-party libraries, no C++, no dynamic memory on the hot path (except the optional scratch buffers), making the library suitable for bare-metal MCUs, DSPs, and FPGA soft-cores.
+
+10. **Thread-aware design**
+
+    * No global mutable state (after making `default_config` `const`).
+    * Optional user-supplied log callback can be added without breaking the ABI.
+
 
 ---
 
