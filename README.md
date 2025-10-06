@@ -36,26 +36,6 @@ It also computes **width metrics** (Full Width at Half Maximum – FWHM, and wid
 
 ---
 
-## Key Functions
-
-### `PeakResult processPeak(MqsRawDataPoint_t a[], int size, uint16_t* peakIndex, bool* isEdgeCase, const PeakFinderConfig* user_config)`
-
-**Description:**
-Main entry point for the peak finding process. Finds and verifies the **widest valid peak** based on adaptive criteria.
-
-**Parameters:**
-
-* `a[]` — Input signal array (`MqsRawDataPoint_t`).
-* `size` — Length of the signal array.
-* `peakIndex` — Output index of the detected peak.
-* `isEdgeCase` — Set `true` if the peak lies near the boundary and still climbing.
-* `user_config` — Optional configuration pointer (use `NULL` for defaults).
-
-**Returns:**
-A `PeakResult` code indicating success or failure.
-
----
-
 ## Debugging
 
 If `DEBUG_PRINT` is defined, verbose messages will be printed for:
